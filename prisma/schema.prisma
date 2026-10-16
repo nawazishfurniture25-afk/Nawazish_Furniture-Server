@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USERS (Admin only) ====================
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("ADMIN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// ==================== PRODUCTS ====================
+model Product {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String?  @db.Text
+  shortDesc   String?
+  price       Int
+  mrp         Int?
+  gstRate     Int      @default(18)
+  hsnCode     String?  @default("9401")
+  category    String
+  fabric      String?
+  dimensions  String?
+  warranty    String?  @default("10 years on frame")
+  inStock     Boolean  @default(true)
+  stockQty    Int      @default(1)
+  featured    Boolean  @default(false)
+  tag         String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  images    ProductImage[]
+  orderItems OrderItem[]
+
+  @@index([category])
+  @@index([featured])
+  @@map("products")
+}
+
+// ==================== PRODUCT IMAGES ====================
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  url       String
+  alt       String?
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+// ==================== ORDERS ====================
+model Order {
+  id              String   @id @default(uuid())
+  orderNumber     String   @unique
+
+  customerName    String
+  customerPhone   String
+  customerEmail   String?
+  deliveryAddress String   @db.Text
+  deliveryCity    String
+  deliveryPincode String
+
+  subtotal        Int
+  gstAmount       Int      @default(0)
+  shippingAmount  Int      @default(0)
+  totalAmount     Int
+
+  paymentStatus   String   @default("PENDING")
+  paymentMethod   String?
+  razorpayOrderId String?
+  razorpayPaymentId String?
+  razorpaySignature String?
+
+  status          String   @default("PENDING")
+  notes           String?  @db.Text
+
+  invoiceNumber   String?  @unique
+  invoiceUrl      String?
+
+  customerGstin   String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items OrderItem[]
+
+  @@index([customerPhone])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+// ==================== ORDER ITEMS ====================
+model OrderItem {
+  id              String @id @default(uuid())
+  orderId         String
+  productId       String
+  productName     String
+  productImage    String
+  quantity        Int
+  unitPrice       Int
+  gstRate         Int
+  lineTotal       Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+// ==================== ENQUIRIES ====================
+model Enquiry {
+  id          String   @id @default(uuid())
+  type        String
+  name        String
+  phone       String
+  email       String?
+  city        String?
+  pincode     String?
+  pieceType   String?
+  dimensions  String?
+  fabric      String?
+  budget      String?
+  message     String?  @db.Text
+  status      String   @default("NEW")
+  createdAt   DateTime @default(now())
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("enquiries")
+}
+
+// ==================== SETTINGS ====================
+model Setting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
